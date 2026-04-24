@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>hoxfox — filter your vibe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        oklch(0.08 0.025 275);
+    --bg2:       oklch(0.11 0.025 275);
+    --bg3:       oklch(0.15 0.03 275);
+    --surface:   oklch(0.14 0.03 275);
+    --border:    oklch(0.22 0.03 275);
+    --lime:      oklch(0.82 0.22 145);
+    --violet:    oklch(0.65 0.22 310);
+    --coral:     oklch(0.72 0.22 25);
+    --sky:       oklch(0.72 0.18 225);
+    --text:      oklch(0.95 0.01 275);
+    --text2:     oklch(0.60 0.03 275);
+    --text3:     oklch(0.38 0.03 275);
+    --r:         16px;
+    --rL:        24px;
+  }
+
+  html, body { width: 100%; height: 100%; overflow: hidden; background: var(--bg); }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root { width: 100%; height: 100%; }
+
+  /* ── Orb background ── */
+  .orb-field {
+    position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none;
+  }
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.35;
+    animation: orbDrift linear infinite;
+  }
+  @keyframes orbDrift {
+    0%   { transform: translate(0,0) scale(1); }
+    33%  { transform: translate(40px,-60px) scale(1.15); }
+    66%  { transform: translate(-30px,40px) scale(0.9); }
+    100% { transform: translate(0,0) scale(1); }
+  }
+
+  /* ── Noise overlay ── */
+  .noise {
+    position: fixed; inset: 0; z-index: 1; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    opacity: 0.03;
+  }
+
+  /* ── Screen transition ── */
+  .screen {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; flex-direction: column; align-items: center;
+    overflow-y: auto; overflow-x: hidden;
+    animation: screenIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  @keyframes screenIn {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .screen-exit {
+    animation: screenOut 0.35s cubic-bezier(0.4,0,1,1) both;
+  }
+  @keyframes screenOut {
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(-28px); }
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--lime); color: var(--bg);
+    border: none; border-radius: 100px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600; font-size: 15px; letter-spacing: 0.01em;
+    padding: 14px 28px; cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
+    box-shadow: 0 0 32px oklch(0.82 0.22 145 / 0.3);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 48px oklch(0.82 0.22 145 / 0.5);
+  }
+  .btn-primary:active { transform: translateY(0); }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border); border-radius: 100px;
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    padding: 10px 20px; cursor: pointer;
+    transition: border-color 0.18s, color 0.18s, transform 0.18s;
+  }
+  .btn-ghost:hover { border-color: var(--text2); color: var(--text); transform: translateY(-1px); }
+
+  .btn-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.18s, transform 0.18s;
+    color: var(--text2);
+  }
+  .btn-icon:hover { background: var(--border); color: var(--text); transform: scale(1.08); }
+
+  /* ── Card ── */
+  .card {
+    background: oklch(0.13 0.03 275 / 0.8);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--rL);
+  }
+
+  /* ── Pill ── */
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 100px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.22,1,0.36,1);
+    border: 1.5px solid var(--border);
+    background: transparent; color: var(--text2);
+    user-select: none;
+  }
+  .pill.active {
+    border-color: transparent;
+    color: var(--bg);
+    box-shadow: 0 0 20px currentColor;
+    transform: scale(1.04);
+  }
+  .pill:hover:not(.active) { border-color: var(--text3); color: var(--text); transform: scale(1.02); }
+
+  /* ── Range slider ── */
+  input[type=range] {
+    -webkit-appearance: none; width: 100%; height: 3px;
+    border-radius: 2px; outline: none; cursor: pointer;
+    background: var(--border);
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--lime); border: 2px solid var(--bg);
+    box-shadow: 0 0 12px oklch(0.82 0.22 145 / 0.5);
+    transition: transform 0.15s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  /* ── Waveform bars ── */
+  .wave-bar {
+    width: 3px; border-radius: 3px;
+    background: var(--lime);
+    animation: waveAnim ease-in-out infinite alternate;
+    transform-origin: bottom;
+  }
+  @keyframes waveAnim {
+    from { transform: scaleY(0.2); opacity: 0.5; }
+    to   { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ── Playlist card ── */
+  .pl-card {
+    border-radius: var(--r);
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    padding: 16px; cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.22,1,0.36,1);
+    position: relative; overflow: hidden;
+  }
+  .pl-card::before {
+    content: '';
+    position: absolute; inset: 0; opacity: 0;
+    background: linear-gradient(135deg, oklch(0.82 0.22 145 / 0.1), oklch(0.65 0.22 310 / 0.1));
+    transition: opacity 0.22s;
+  }
+  .pl-card:hover { transform: translateY(-4px); border-color: var(--text3); }
+  .pl-card:hover::before { opacity: 1; }
+  .pl-card.selected { border-color: var(--lime); box-shadow: 0 0 0 1px var(--lime), 0 8px 32px oklch(0.82 0.22 145 / 0.2); }
+  .pl-card.selected::before { opacity: 1; }
+
+  /* ── Song row ── */
+  .song-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 12px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .song-row:hover { background: var(--bg3); }
+
+  /* ── Progress bar ── */
+  .progress-bar {
+    height: 2px; background: var(--border); border-radius: 2px;
+    overflow: hidden; margin-bottom: 32px;
+  }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--violet), var(--lime));
+    transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* ── Confetti animation ── */
+  @keyframes confettiFall {
+    0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100px) rotate(720deg); opacity: 0; }
+  }
+  .confetti-piece {
+    position: absolute; width: 8px; height: 8px;
+    border-radius: 2px;
+    animation: confettiFall 1.2s ease-in forwards;
+  }
+
+  /* ── Album float animation ── */
+  @keyframes albumFloat {
+    0%,100% { transform: var(--rot) translateY(0px); }
+    50%      { transform: var(--rot) translateY(-10px); }
+  }
+  .album-art {
+    position: absolute;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    animation: albumFloat ease-in-out infinite;
+  }
+  .album-art::after {
+    content:'';
+    position:absolute;inset:0;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,0.08);
+  }
+
+  /* ── Navbar ── */
+  .hox-nav {
+    position: absolute; top:0; left:0; right:0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 32px; height: 56px;
+    background: linear-gradient(180deg, oklch(0.07 0.025 275 / 0.95) 0%, transparent 100%);
+    backdrop-filter: blur(12px);
+  }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 40px; height: 40px; border-radius: 50%;
+    border: 3px solid var(--border);
+    border-top-color: var(--lime);
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* ── Input ── */
+  .text-input {
+    background: var(--bg3); border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 14px 18px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px;
+    outline: none; transition: border-color 0.18s;
+    width: 100%;
+  }
+  .text-input:focus { border-color: var(--lime); }
+  .text-input::placeholder { color: var(--text3); }
+
+  /* ── Floating label ── */
+  .section-label {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+/* ── DATA ── */
+const PLAYLISTS = [
+  { id:'p1', name:'My Favs 🎵', count:847, cover:'145', owner:'you' },
+  { id:'p2', name:'Late Night Drives', count:312, cover:'310', owner:'you' },
+  { id:'p3', name:'Gym Hits', count:214, cover:'25', owner:'you' },
+  { id:'p4', name:'Top Global 50', count:50, cover:'225', owner:'Spotify' },
+  { id:'p5', name:'Chill Vibes', count:198, cover:'145', owner:'you' },
+  { id:'p6', name:'throwback 2000s', count:430, cover:'55', owner:'you' },
+];
+
+const GENRES = [
+  { id:'pop',       label:'Pop',        color:'lime',   emoji:'✦' },
+  { id:'hiphop',    label:'Hip-Hop',    color:'coral',  emoji:'◈' },
+  { id:'electronic',label:'Electronic', color:'sky',    emoji:'◉' },
+  { id:'rnb',       label:'R&B',        color:'violet', emoji:'◆' },
+  { id:'rock',      label:'Rock',       color:'coral',  emoji:'⬡' },
+  { id:'jazz',      label:'Jazz',       color:'lime',   emoji:'◎' },
+  { id:'classical', label:'Classical',  color:'sky',    emoji:'◇' },
+  { id:'latin',     label:'Latin',      color:'violet', emoji:'◑' },
+  { id:'indie',     label:'Indie',      color:'lime',   emoji:'△' },
+  { id:'metal',     label:'Metal',      color:'coral',  emoji:'▣' },
+  { id:'soul',      label:'Soul',       color:'violet', emoji:'❋' },
+  { id:'country',   label:'Country',    color:'sky',    emoji:'◐' },
+];
+
+const MOODS = [
+  { id:'happy',      label:'Happy',      color:'lime' },
+  { id:'melancholic',label:'Melancholic',color:'violet' },
+  { id:'energetic',  label:'Energetic',  color:'coral' },
+  { id:'calm',       label:'Calm',       color:'sky' },
+  { id:'dark',       label:'Dark',       color:'violet' },
+  { id:'romantic',   label:'Romantic',   color:'coral' },
+];
+
+const ERAS = ['60s', '70s', '80s', '90s', '00s', '10s', '20s'];
+
+const SAMPLE_SONGS = [
+  { id:1, title:'Blinding Lights',    artist:'The Weeknd',          genre:'pop',        dur:'3:20', match:98 },
+  { id:2, title:'HUMBLE.',            artist:'Kendrick Lamar',       genre:'hiphop',     dur:'2:57', match:95 },
+  { id:3, title:'Lose Yourself',      artist:'Eminem',               genre:'hiphop',     dur:'5:26', match:91 },
+  { id:4, title:'Levitating',         artist:'Dua Lipa',             genre:'pop',        dur:'3:23', match:94 },
+  { id:5, title:'Redbone',            artist:'Childish Gambino',     genre:'rnb',        dur:'5:26', match:89 },
+  { id:6, title:'Anti-Hero',          artist:'Taylor Swift',         genre:'pop',        dur:'3:20', match:97 },
+  { id:7, title:'Midnight Rain',      artist:'Taylor Swift',         genre:'pop',        dur:'2:54', match:93 },
+  { id:8, title:'As It Was',          artist:'Harry Styles',         genre:'pop',        dur:'2:37', match:96 },
+  { id:9, title:'Stayed Gone',        artist:'The Used',             genre:'rock',       dur:'3:55', match:87 },
+  { id:10,title:'Circles',            artist:'Post Malone',          genre:'pop',        dur:'3:35', match:92 },
+  { id:11,title:'Industry Baby',      artist:'Lil Nas X',            genre:'hiphop',     dur:'3:32', match:90 },
+  { id:12,title:'Heat Waves',         artist:'Glass Animals',        genre:'indie',      dur:'3:59', match:88 },
+  { id:13,title:'Bad Guy',            artist:'Billie Eilish',        genre:'pop',        dur:'3:14', match:96 },
+  { id:14,title:'Essence',            artist:'Wizkid',               genre:'rnb',        dur:'4:01', match:85 },
+  { id:15,title:'Starboy',            artist:'The Weeknd',           genre:'pop',        dur:'3:50', match:93 },
+];
+
+/* ── UTILS ── */
+const colorVar = c => `var(--${c})`;
+
+/* ── ORB FIELD ── */
+const OrbField = () => (
+  <div className="orb-field">
+    {[
+      {w:600,h:600,top:'-10%',left:'-10%',color:'oklch(0.65 0.22 310 / 0.5)',dur:'18s'},
+      {w:500,h:500,top:'40%',right:'-8%',color:'oklch(0.82 0.22 145 / 0.4)',dur:'22s'},
+      {w:400,h:400,top:'60%',left:'10%',color:'oklch(0.72 0.22 25 / 0.35)',dur:'26s'},
+      {w:350,h:350,top:'20%',left:'50%',color:'oklch(0.72 0.18 225 / 0.3)',dur:'20s'},
+    ].map((o,i)=>(
+      <div key={i} className="orb" style={{
+        width:o.w,height:o.h,
+        top:o.top,left:o.left,right:o.right,
+        background:o.color,
+        animationDuration:o.dur,
+        animationDelay:`${i*-4}s`,
+      }}/>
+    ))}
+  </div>
+);
+
+/* ── WAVEFORM ── */
+const Waveform = ({active, color='lime', bars=18, height=32}) => (
+  <div style={{display:'flex',alignItems:'flex-end',gap:3,height}}>
+    {Array.from({length:bars},(_,i)=>(
+      <div key={i} className="wave-bar" style={{
+        height:`${20+Math.random()*80}%`,
+        background:`var(--${color})`,
+        animationDuration:`${0.4+Math.random()*0.6}s`,
+        animationDelay:`${i*0.04}s`,
+        opacity: active ? 1 : 0.3,
+        animationPlayState: active ? 'running' : 'paused',
+      }}/>
+    ))}
+  </div>
+);
+
+/* ── COVER ART placeholder ── */
+const CoverArt = ({hue, size=48, radius=10, name}) => (
+  <div style={{
+    width:size, height:size, borderRadius:radius, flexShrink:0,
+    background:`linear-gradient(135deg, oklch(0.3 0.15 ${hue}), oklch(0.6 0.2 ${hue}))`,
+    display:'flex',alignItems:'center',justifyContent:'center',
+    fontSize:size*0.35, fontWeight:700, color:'white', fontFamily:'Space Grotesk',
+    userSelect:'none',
+  }}>
+    {name?.[0]?.toUpperCase()}
+  </div>
+);
+
+/* ── PROGRESS STEPS ── */
+const Steps = ({current}) => {
+  const labels = ['Connect','Choose','Filter','Create'];
+  const pct = ((current-1)/3)*100;
+  return (
+    <div style={{width:'100%',maxWidth:480,marginBottom:32,padding:'0 4px'}}>
+      <div className="progress-bar"><div className="progress-fill" style={{width:`${pct}%`}}/></div>
+      <div style={{display:'flex',justifyContent:'space-between'}}>
+        {labels.map((l,i)=>(
+          <span key={l} style={{
+            fontSize:11,fontFamily:'Space Grotesk',fontWeight:600,letterSpacing:'0.06em',
+            color: i+1<=current ? 'var(--text2)' : 'var(--text3)',
+            textTransform:'uppercase',
+          }}>{l}</span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   WAVE CANVAS — multiple → one
+══════════════════════════════════ */
+const SONG_FRAGMENTS = [
+  'Blinding Lights','HUMBLE.','Levitating','Anti-Hero','Redbone',
+  'As It Was','Heat Waves','Bad Guy','Starboy','Circles',
+  'Industry Baby','Stay','Watermelon Sugar','Peaches','Montero',
+  'drivers license','good 4 u','Shivers','Easy On Me','Ghost',
+];
+
+const WaveCanvas = () => {
+  const canvasRef = useRef(null);
+  const rafRef = useRef(null);
+
+  useEffect(()=>{
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+
+    const LABEL_TOPS = [0.20, 0.32, 0.50, 0.63, 0.75];
+    const WAVES = [
+      { color:[120,60,255],  speed:0.018, freq:0.016, amp:22 },
+      { color:[255,100,60],  speed:0.022, freq:0.020, amp:20 },
+      { color:[60,180,255],  speed:0.015, freq:0.013, amp:24 },
+      { color:[60,220,160],  speed:0.020, freq:0.018, amp:18 },
+      { color:[255,200,60],  speed:0.017, freq:0.022, amp:20 },
+    ];
+    const phases = WAVES.map(()=>Math.random()*Math.PI*2);
+
+    // Song fragments: each pinned to a wave with a fractional x position
+    const fragments = WAVES.map((w,wi)=>
+      Array.from({length:4},(_,fi)=>({
+        wi, frac: 0.08 + fi*0.11 + Math.random()*0.04,
+        text: SONG_FRAGMENTS[(wi*4+fi)%SONG_FRAGMENTS.length],
+      }))
+    ).flat();
+
+    let dpr = devicePixelRatio;
+    const resize = () => {
+      dpr = devicePixelRatio;
+      canvas.width  = canvas.offsetWidth  * dpr;
+      canvas.height = canvas.offsetHeight * dpr;
+    };
+    resize();
+    window.addEventListener('resize', resize);
+
+    const getWaveY = (wi, x, W, H) => {
+      const cy = H/2, mergeX = W*0.50;
+      const startY = LABEL_TOPS[wi]*H;
+      const rawT = Math.min(1, x/mergeX);
+      const conv = rawT*rawT*(3-2*rawT);
+      const baseY = startY + (cy-startY)*conv;
+      const amp = WAVES[wi].amp*(1-conv);
+      return baseY + amp*Math.sin(phases[wi] + x*WAVES[wi].freq);
+    };
+
+    const draw = () => {
+      const W = canvas.offsetWidth;
+      const H = canvas.offsetHeight;
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      ctx.clearRect(0,0,W,H);
+      const cy = H/2, mergeX = W*0.50;
+
+      // Subtle dot grid background
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      const gx = 40, gy = 40;
+      for(let gxi=0; gxi*gx<W; gxi++){
+        for(let gyi=0; gyi*gy<H; gyi++){
+          ctx.beginPath();
+          ctx.arc(gxi*gx+20, gyi*gy+20, 1, 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+      // Radial glow at merge point
+      const grad = ctx.createRadialGradient(mergeX,cy,0,mergeX,cy,120);
+      grad.addColorStop(0,'rgba(160,255,100,0.12)');
+      grad.addColorStop(1,'rgba(160,255,100,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(mergeX-120,cy-120,240,240);
+
+      // Draw each wave
+      WAVES.forEach((wave,wi)=>{
+        phases[wi] += wave.speed;
+        const startY = LABEL_TOPS[wi]*H;
+        ctx.beginPath();
+        const steps = 200;
+        for(let s=0; s<=steps; s++){
+          const x = (s/steps)*W;
+          if(x > mergeX) break;
+          const y = getWaveY(wi,x,W,H);
+          s===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+        }
+        const [r,g,b] = wave.color;
+        // gradient stroke: full color → fades near merge
+        const sg = ctx.createLinearGradient(0,0,mergeX,0);
+        sg.addColorStop(0,`rgba(${r},${g},${b},0.7)`);
+        sg.addColorStop(0.7,`rgba(${r},${g},${b},0.55)`);
+        sg.addColorStop(1,`rgba(${r},${g},${b},0.1)`);
+        ctx.strokeStyle = sg;
+        ctx.lineWidth = 1.8;
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // Node dots along the wave
+        [0.15, 0.30, 0.45].forEach(frac=>{
+          const nx = frac*mergeX;
+          const ny = getWaveY(wi,nx,W,H);
+          ctx.beginPath();
+          ctx.arc(nx,ny,2.5,0,Math.PI*2);
+          ctx.fillStyle = `rgba(${r},${g},${b},0.5)`;
+          ctx.fill();
+        });
+      });
+
+      // Song fragment labels along waves
+      ctx.font = '500 9px "Space Grotesk", sans-serif';
+      ctx.textBaseline = 'middle';
+      fragments.forEach(f=>{
+        if(f.frac > 0.95) return;
+        const x = f.frac * mergeX;
+        const y = getWaveY(f.wi, x, W, H);
+        const [r,g,b] = WAVES[f.wi].color;
+        ctx.fillStyle = `rgba(${r},${g},${b},0.28)`;
+        ctx.fillText(f.text, x+8, y-10);
+      });
+
+      // Merged lime wave right of center
+      ctx.beginPath();
+      for(let s=0; s<=120; s++){
+        const x = mergeX + (s/120)*(W-mergeX);
+        const y = cy + 20*Math.sin(phases[0] + x*0.014);
+        s===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+      }
+      const limeGrad = ctx.createLinearGradient(mergeX,0,W,0);
+      limeGrad.addColorStop(0,'rgba(160,255,100,0.4)');
+      limeGrad.addColorStop(0.2,'rgba(160,255,100,0.95)');
+      limeGrad.addColorStop(1,'rgba(160,255,100,0.6)');
+      ctx.strokeStyle = limeGrad;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = 'rgba(160,255,100,0.5)';
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Node dots on merged wave
+      [0.15,0.4,0.65,0.88].forEach(f=>{
+        const x = mergeX + f*(W-mergeX);
+        const y = cy + 20*Math.sin(phases[0]+x*0.014);
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2);
+        ctx.fillStyle = 'rgba(160,255,100,0.7)';
+        ctx.shadowColor = 'rgba(160,255,100,0.8)'; ctx.shadowBlur = 8;
+        ctx.fill(); ctx.shadowBlur = 0;
+      });
+
+      // Merge point pulse
+      const pulse = 0.5 + 0.5*Math.sin(Date.now()*0.003);
+      ctx.beginPath();
+      ctx.arc(mergeX, cy, 5+pulse*3, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(160,255,100,${0.3+pulse*0.2})`;
+      ctx.shadowColor = 'rgba(160,255,100,0.9)'; ctx.shadowBlur = 20+pulse*10;
+      ctx.fill(); ctx.shadowBlur = 0;
+      ctx.beginPath(); ctx.arc(mergeX,cy,4,0,Math.PI*2);
+      ctx.fillStyle = 'rgba(160,255,100,1)'; ctx.fill();
+
+      rafRef.current = requestAnimationFrame(draw);
+    };
+    draw();
+    return ()=>{ cancelAnimationFrame(rafRef.current); window.removeEventListener('resize', resize); };
+  },[]);
+
+  return <canvas ref={canvasRef} style={{position:'absolute',inset:0,width:'100%',height:'100%'}}/>;
+};
+
+/* ══════════════════════════════════
+   ALBUM ART (CSS-drawn iconic palettes)
+══════════════════════════════════ */
+const ALBUMS = [
+  // Dark Side of the Moon
+  { size:78, rot:-4, dur:'7s', delay:'0s', top:'7%',  left:'3%',
+    bg:'#050505',
+    inner:<svg viewBox="0 0 78 78" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <defs><linearGradient id="prism" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stopColor="#ff0000"/><stop offset="20%" stopColor="#ff8800"/>
+        <stop offset="40%" stopColor="#ffff00"/><stop offset="60%" stopColor="#00cc00"/>
+        <stop offset="80%" stopColor="#0000ff"/><stop offset="100%" stopColor="#8800cc"/>
+      </linearGradient></defs>
+      <polygon points="39,10 65,55 13,55" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="0.8"/>
+      <line x1="13" y1="55" x2="0" y2="39" stroke="rgba(255,255,255,0.3)" strokeWidth="0.8"/>
+      <line x1="65" y1="55" x2="78" y2="39" stroke="url(#prism)" strokeWidth="2.5"/>
+    </svg> },
+
+  // Purple Rain
+  { size:68, rot:3, dur:'9s', delay:'-2s', top:'14%', left:'18%',
+    bg:'linear-gradient(160deg,#0d0018 0%,#4a1070 60%,#1a004a 100%)',
+    inner:<svg viewBox="0 0 68 68" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <ellipse cx="34" cy="50" rx="12" ry="4" fill="rgba(160,80,255,0.3)"/>
+      <rect x="30" y="18" width="8" height="28" rx="2" fill="rgba(180,100,255,0.5)"/>
+      <circle cx="34" cy="16" r="5" fill="rgba(200,120,255,0.6)"/>
+    </svg> },
+
+  // After Hours
+  { size:82, rot:2, dur:'11s', delay:'-4s', top:'70%', left:'3%',
+    bg:'linear-gradient(180deg,#6b0000 0%,#0a0000 100%)',
+    inner:<svg viewBox="0 0 82 82" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <circle cx="41" cy="36" r="18" fill="none" stroke="rgba(200,0,0,0.4)" strokeWidth="0.8"/>
+      <circle cx="41" cy="36" r="10" fill="rgba(180,0,0,0.35)"/>
+      <path d="M30,56 Q41,44 52,56" fill="none" stroke="rgba(220,50,50,0.5)" strokeWidth="1"/>
+    </svg> },
+
+  // Blonde
+  { size:72, rot:-5, dur:'8s', delay:'-1s', top:'78%', left:'20%',
+    bg:'linear-gradient(135deg,#c84b00 0%,#f0a020 50%,#ffe066 100%)',
+    inner:<svg viewBox="0 0 72 72" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <rect x="0" y="0" width="72" height="72" fill="rgba(0,0,0,0.15)"/>
+      <text x="12" y="46" fontFamily="serif" fontSize="28" fontWeight="900" fill="rgba(255,255,255,0.15)">B</text>
+    </svg> },
+
+  // Random Access Memories
+  { size:74, rot:6, dur:'10s', delay:'-3s', top:'6%',  right:'4%',
+    bg:'linear-gradient(135deg,#1a1000 0%,#7a5c00 40%,#d4a000 70%,#7a5c00 100%)',
+    inner:<svg viewBox="0 0 74 74" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <circle cx="37" cy="37" r="22" fill="none" stroke="rgba(255,200,0,0.35)" strokeWidth="1"/>
+      <circle cx="37" cy="37" r="12" fill="rgba(200,150,0,0.25)"/>
+      <circle cx="37" cy="37" r="4"  fill="rgba(255,200,0,0.5)"/>
+    </svg> },
+
+  // Currents
+  { size:66, rot:-3, dur:'12s', delay:'-5s', top:'16%', right:'18%',
+    bg:'linear-gradient(135deg,#002020 0%,#006060 50%,#00aaaa 100%)',
+    inner:<svg viewBox="0 0 66 66" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <path d="M10,33 Q20,15 33,33 Q46,51 56,33" fill="none" stroke="rgba(0,220,220,0.4)" strokeWidth="1.5"/>
+      <path d="M10,40 Q20,22 33,40 Q46,58 56,40" fill="none" stroke="rgba(0,180,180,0.25)" strokeWidth="1"/>
+    </svg> },
+
+  // DAMN.
+  { size:64, rot:1, dur:'8.5s', delay:'-6s', top:'72%', right:'4%',
+    bg:'#111111',
+    inner:<svg viewBox="0 0 64 64" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <rect x="10" y="22" width="44" height="5" rx="1" fill="rgba(255,255,255,0.55)"/>
+      <rect x="10" y="32" width="30" height="5" rx="1" fill="rgba(255,255,255,0.25)"/>
+      <rect x="10" y="42" width="38" height="5" rx="1" fill="rgba(255,255,255,0.18)"/>
+    </svg> },
+
+  // Nevermind
+  { size:70, rot:-6, dur:'9.5s', delay:'-2.5s', top:'80%', right:'20%',
+    bg:'linear-gradient(180deg,#0a1a4a 0%,#1a3a8a 50%,#2a50aa 100%)',
+    inner:<svg viewBox="0 0 70 70" style={{position:'absolute',inset:0,width:'100%',height:'100%'}}>
+      <ellipse cx="35" cy="42" rx="20" ry="8" fill="rgba(100,150,255,0.2)"/>
+      <circle cx="35" cy="32" r="8" fill="rgba(140,180,255,0.25)"/>
+      <line x1="35" y1="24" x2="35" y2="14" stroke="rgba(180,200,255,0.3)" strokeWidth="1.5"/>
+    </svg> },
+];
+
+const AlbumLayer = ({mounted}) => (
+  <div style={{position:'absolute',inset:0,zIndex:2,pointerEvents:'none'}}>
+    {ALBUMS.map((a,i)=>(
+      <div key={i} className="album-art" style={{
+        width:a.size, height:a.size,
+        top:a.top, left:a.left, right:a.right,
+        background:a.bg,
+        '--rot': `rotate(${a.rot}deg)`,
+        animationDuration:a.dur,
+        animationDelay:a.delay,
+        opacity: mounted ? 0.55 : 0,
+        transition:`opacity 0.8s ${0.3+i*0.07}s`,
+      }}>
+        {a.inner}
+      </div>
+    ))}
+  </div>
+);
+
+/* ── Navbar ── */
+const HoxNav = ({mounted, onNext}) => (
+  <nav className="hox-nav" style={{opacity:mounted?1:0,transition:'opacity 0.6s 0.2s'}}>
+    <div style={{display:'flex',alignItems:'center',gap:8}}>
+      <div style={{
+        width:26,height:26,borderRadius:7,flexShrink:0,
+        background:'linear-gradient(135deg,var(--violet),var(--lime))',
+        display:'flex',alignItems:'center',justifyContent:'center',
+        fontSize:13,fontWeight:700,color:'oklch(0.07 0.025 275)',fontFamily:'Space Grotesk',
+      }}>h</div>
+      <span style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:15,letterSpacing:'-0.02em'}}>hoxfox</span>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:28}}>
+      {['Features','How it works','Pricing'].map(l=>(
+        <span key={l} style={{
+          fontSize:13,color:'var(--text3)',cursor:'pointer',fontFamily:'DM Sans',
+          transition:'color 0.15s',
+        }}
+        onMouseEnter={e=>e.target.style.color='var(--text)'}
+        onMouseLeave={e=>e.target.style.color='var(--text3)'}
+        >{l}</span>
+      ))}
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:10}}>
+      <button className="btn-ghost" style={{padding:'7px 16px',fontSize:12}} onClick={onNext}>Log in</button>
+      <button className="btn-primary" style={{padding:'8px 18px',fontSize:12}} onClick={onNext}>Get started</button>
+    </div>
+  </nav>
+);
+
+/* ══════════════════════════════════
+   SCREEN 1 — HERO
+══════════════════════════════════ */
+const HeroScreen = ({onNext}) => {
+  const [mounted, setMounted] = useState(false);
+  const [hoveredGenre, setHoveredGenre] = useState(null);
+  useEffect(()=>{ const id=setTimeout(()=>setMounted(true),80); return()=>clearTimeout(id); },[]);
+
+  const genres = [
+    {label:'Hip-Hop', color:'rgba(120,60,255,0.9)'},
+    {label:'Pop',     color:'rgba(255,200,60,0.9)'},
+    {label:'Rock',    color:'rgba(255,100,60,0.9)'},
+    {label:'Jazz',    color:'rgba(60,220,160,0.9)'},
+    {label:'Electronic',color:'rgba(60,180,255,0.9)'},
+    {label:'R&B',     color:'rgba(200,80,200,0.9)'},
+  ];
+
+
+
+  return (
+    <div className="screen" style={{flexDirection:'row', height:'100vh', overflow:'hidden', position:'relative'}}>
+
+      {/* Navbar */}
+      <HoxNav mounted={mounted} onNext={onNext}/>
+
+      {/* Full-viewport canvas */}
+      <div style={{position:'absolute',inset:0,opacity:mounted?1:0,transition:'opacity 1.2s 0.1s'}}>
+        <WaveCanvas/>
+      </div>
+
+      {/* Album art layer */}
+      <AlbumLayer mounted={mounted}/>
+
+      {/* Genre labels — left edge, Y must match LABEL_TOPS in canvas */}
+      <div style={{position:'absolute',left:0,top:0,width:'100%',height:'100%',zIndex:3,
+        opacity:mounted?1:0,transition:'opacity 0.8s 0.4s', pointerEvents:'none'}}>
+        {[
+          {label:'Hip-Hop',    color:'rgba(120,60,255,0.85)',  top:'20%'},
+          {label:'Rock',       color:'rgba(255,100,60,0.85)',  top:'32%'},
+          {label:'Electronic', color:'rgba(60,180,255,0.85)',  top:'50%'},
+          {label:'Jazz',       color:'rgba(60,220,160,0.85)',  top:'63%'},
+          {label:'Pop',        color:'rgba(255,200,60,0.85)',  top:'75%'},
+        ].map(g=>(
+          <div key={g.label} style={{
+            position:'absolute', left:0, top:g.top,
+            transform:'translateY(-50%)',
+            display:'flex', alignItems:'center', gap:8,
+            paddingLeft:20,
+          }}>
+            <div style={{
+              width:6, height:6, borderRadius:'50%', flexShrink:0,
+              background:g.color, boxShadow:`0 0 8px ${g.color}`,
+            }}/>
+            <span style={{
+              fontSize:10, fontFamily:'Space Grotesk', fontWeight:700,
+              letterSpacing:'0.1em', textTransform:'uppercase', color:g.color,
+            }}>{g.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* "filtered" label — right */}
+      <div style={{
+        position:'absolute',right:32,top:'50%',transform:'translateY(-50%)',
+        zIndex:3,textAlign:'right',
+        opacity:mounted?1:0,transition:'opacity 0.8s 0.6s',pointerEvents:'none',
+      }}>
+        <div style={{fontSize:10,fontFamily:'Space Grotesk',fontWeight:700,
+          letterSpacing:'0.12em',textTransform:'uppercase',color:'rgba(160,255,100,0.8)',marginBottom:6}}>filtered</div>
+        <div style={{width:1,height:40,background:'rgba(160,255,100,0.3)',marginLeft:'auto'}}/>
+      </div>
+
+      {/* Center card */}
+      <div style={{
+        position:'absolute',inset:0,zIndex:4,
+        display:'flex',alignItems:'center',justifyContent:'center',
+        paddingTop:56,
+        pointerEvents:'none',
+      }}>
+        <div style={{
+          width:340,
+          pointerEvents:'auto',
+          opacity:mounted?1:0,
+          transform:mounted?'none':'translateY(20px)',
+          transition:'all 0.7s 0.3s cubic-bezier(0.22,1,0.36,1)',
+          background:'oklch(0.07 0.025 275)',
+          border:'1px solid oklch(0.20 0.04 275)',
+          borderRadius:20,
+          overflow:'hidden',
+        }}>
+
+          {/* Top bar */}
+          <div style={{
+            display:'flex',alignItems:'center',justifyContent:'space-between',
+            padding:'16px 20px 14px',
+            borderBottom:'1px solid oklch(0.16 0.03 275)',
+          }}>
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{
+                width:26,height:26,borderRadius:7,
+                background:'linear-gradient(135deg,var(--violet),var(--lime))',
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontSize:13,fontWeight:700,color:'oklch(0.07 0.025 275)',
+                fontFamily:'Space Grotesk',
+              }}>h</div>
+              <span style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:14,letterSpacing:'-0.02em'}}>hoxfox</span>
+            </div>
+            <span style={{
+              fontSize:9,fontFamily:'Space Grotesk',fontWeight:700,
+              letterSpacing:'0.14em',textTransform:'uppercase',
+              background:'oklch(0.82 0.22 145 / 0.12)',
+              color:'var(--lime)',padding:'3px 8px',borderRadius:100,
+              border:'1px solid oklch(0.82 0.22 145 / 0.2)',
+            }}>BETA</span>
+          </div>
+
+          {/* Headline block */}
+          <div style={{padding:'22px 20px 16px'}}>
+            <div style={{
+              fontFamily:'Space Grotesk',fontWeight:300,
+              fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',
+              color:'var(--text3)',marginBottom:8,
+            }}>playlist filter</div>
+            <h1 style={{
+              fontFamily:'Space Grotesk',fontWeight:700,
+              fontSize:26,lineHeight:1.05,letterSpacing:'-0.03em',
+              marginBottom:0,
+            }}>
+              Turn your chaos
+              <br/>into a
+              {' '}<span style={{
+                background:'linear-gradient(90deg,var(--lime) 0%,var(--sky) 100%)',
+                WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent',
+              }}>vibe.</span>
+            </h1>
+          </div>
+
+          {/* Stat strip */}
+          <div style={{
+            margin:'0 20px 16px',
+            background:'oklch(0.11 0.03 275)',
+            border:'1px solid oklch(0.18 0.03 275)',
+            borderRadius:12,
+            display:'flex',alignItems:'center',
+            padding:'12px 16px',gap:0,
+          }}>
+            <div style={{flex:1,textAlign:'center'}}>
+              <div style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:22,letterSpacing:'-0.04em',color:'var(--text3)'}}>847</div>
+              <div style={{fontSize:9,color:'var(--text3)',letterSpacing:'0.1em',textTransform:'uppercase',marginTop:2}}>songs in</div>
+            </div>
+            <div style={{padding:'0 12px',display:'flex',flexDirection:'column',alignItems:'center',gap:4}}>
+              <div style={{fontSize:16,color:'var(--lime)'}}>→</div>
+              <div style={{width:1,height:16,background:'oklch(0.22 0.03 275)'}}/>
+            </div>
+            <div style={{flex:1,textAlign:'center'}}>
+              <div style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:22,letterSpacing:'-0.04em',color:'var(--lime)'}}>23</div>
+              <div style={{fontSize:9,color:'var(--lime)',opacity:0.7,letterSpacing:'0.1em',textTransform:'uppercase',marginTop:2}}>filtered</div>
+            </div>
+          </div>
+
+          {/* Genre chips */}
+          <div style={{padding:'0 20px 18px',display:'flex',flexWrap:'wrap',gap:6}}>
+            {genres.map(g=>(
+              <div key={g.label}
+                onMouseEnter={()=>setHoveredGenre(g.label)}
+                onMouseLeave={()=>setHoveredGenre(null)}
+                style={{
+                  fontSize:11,fontFamily:'Space Grotesk',fontWeight:600,
+                  letterSpacing:'0.04em',
+                  padding:'5px 11px',borderRadius:100,
+                  border:`1px solid ${g.color.replace('0.9','0.3')}`,
+                  color: hoveredGenre===g.label ? 'oklch(0.07 0.025 275)' : g.color,
+                  background: hoveredGenre===g.label ? g.color : g.color.replace('0.9','0.08'),
+                  transition:'all 0.18s',cursor:'default',
+                }}>{g.label}</div>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div style={{height:1,background:'oklch(0.16 0.03 275)',margin:'0 0 16px'}}/>
+
+          {/* CTAs */}
+          <div style={{padding:'0 16px 16px',display:'flex',flexDirection:'column',gap:8}}>
+            <button className="btn-primary" onClick={onNext}
+              style={{width:'100%',justifyContent:'center',fontSize:13,padding:'11px 18px'}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+              </svg>
+              Connect Spotify
+            </button>
+            <button className="btn-ghost" onClick={onNext}
+              style={{width:'100%',justifyContent:'center',fontSize:12,padding:'9px 18px'}}>
+              Try with public playlist →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   SCREEN 2 — PICK PLAYLIST
+══════════════════════════════════ */
+const PlaylistScreen = ({onNext, onBack}) => {
+  const [selected, setSelected] = useState(null);
+  const [url, setUrl] = useState('');
+  const [tab, setTab] = useState('mine'); // mine | url
+
+  return (
+    <div className="screen" style={{padding:'48px 24px',alignItems:'center'}}>
+      <div style={{width:'100%',maxWidth:560}}>
+        <Steps current={2}/>
+
+        <button className="btn-icon" onClick={onBack} style={{marginBottom:24}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+        </button>
+
+        <h2 style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:32,letterSpacing:'-0.03em',marginBottom:8}}>
+          Choose a playlist
+        </h2>
+        <p style={{color:'var(--text2)',fontSize:15,marginBottom:32}}>Pick one to start filtering magic.</p>
+
+        {/* Tabs */}
+        <div style={{display:'flex',gap:4,marginBottom:28,background:'var(--bg3)',borderRadius:12,padding:4}}>
+          {[['mine','My Playlists'],['url','Public URL']].map(([id,label])=>(
+            <button key={id} onClick={()=>setTab(id)} style={{
+              flex:1,padding:'10px',borderRadius:10,border:'none',cursor:'pointer',
+              fontFamily:'DM Sans',fontSize:14,fontWeight:500,
+              background:tab===id ? 'var(--surface)' : 'transparent',
+              color:tab===id ? 'var(--text)' : 'var(--text3)',
+              transition:'all 0.2s',
+            }}>{label}</button>
+          ))}
+        </div>
+
+        {tab==='mine' ? (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:32}}>
+            {PLAYLISTS.map(pl=>(
+              <div key={pl.id} className={`pl-card ${selected===pl.id?'selected':''}`}
+                onClick={()=>setSelected(pl.id)}>
+                <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:12}}>
+                  <CoverArt hue={pl.cover} size={44} radius={8} name={pl.name}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontFamily:'Space Grotesk',fontWeight:600,fontSize:14,
+                      whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{pl.name}</div>
+                    <div style={{color:'var(--text3)',fontSize:12,marginTop:2}}>{pl.count} songs</div>
+                  </div>
+                  {selected===pl.id && (
+                    <div style={{width:20,height:20,borderRadius:'50%',background:'var(--lime)',
+                      display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--bg)" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                  )}
+                </div>
+                <div style={{fontSize:11,color:'var(--text3)'}}>by {pl.owner}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{marginBottom:32}}>
+            <input className="text-input" placeholder="Paste Spotify playlist URL…"
+              value={url} onChange={e=>{setUrl(e.target.value); if(e.target.value) setSelected('url');}}
+              style={{marginBottom:12}}/>
+            <div style={{color:'var(--text3)',fontSize:13}}>
+              e.g. https://open.spotify.com/playlist/37i9dQZF1DX…
+            </div>
+          </div>
+        )}
+
+        <button className="btn-primary" onClick={()=>selected&&onNext(selected)}
+          style={{width:'100%',justifyContent:'center',
+            opacity:selected?1:0.4,pointerEvents:selected?'auto':'none'}}>
+          Continue to Filter Lab
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   SCREEN 3 — FILTER LAB
+══════════════════════════════════ */
+const FilterScreen = ({playlist, onNext, onBack}) => {
+  const pl = PLAYLISTS.find(p=>p.id===playlist) || PLAYLISTS[0];
+  const [genres, setGenres] = useState([]);
+  const [moods, setMoods] = useState([]);
+  const [eras, setEras] = useState([]);
+  const [energy, setEnergy] = useState(50);
+  const [bpm, setBpm] = useState([60, 160]);
+  const [minMatch, setMinMatch] = useState(70);
+
+  const toggle = (arr, setArr, id) =>
+    setArr(prev => prev.includes(id) ? prev.filter(x=>x!==id) : [...prev, id]);
+
+  const hasFilter = genres.length>0||moods.length>0||eras.length>0;
+  const matchCount = SAMPLE_SONGS.filter(s=>
+    (genres.length===0||genres.includes(s.genre)) && s.match>=minMatch
+  ).length;
+
+  return (
+    <div className="screen" style={{padding:'48px 24px',alignItems:'center'}}>
+      <div style={{width:'100%',maxWidth:580}}>
+        <Steps current={3}/>
+
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:28}}>
+          <button className="btn-icon" onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          </button>
+          <div>
+            <h2 style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:28,letterSpacing:'-0.03em'}}>Filter Lab</h2>
+            <div style={{color:'var(--text3)',fontSize:13,marginTop:2,display:'flex',alignItems:'center',gap:8}}>
+              <CoverArt hue={pl.cover} size={18} radius={4} name={pl.name}/>
+              {pl.name} · {pl.count} songs
+            </div>
+          </div>
+        </div>
+
+        {/* Genres */}
+        <div className="card" style={{padding:24,marginBottom:16}}>
+          <div className="section-label">Genre</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {GENRES.map(g=>{
+              const active = genres.includes(g.id);
+              const c = colorVar(g.color);
+              return (
+                <div key={g.id} className={`pill ${active?'active':''}`}
+                  onClick={()=>toggle(genres,setGenres,g.id)}
+                  style={active?{background:c,color:'var(--bg)',boxShadow:`0 0 16px ${c}`}:{}}>
+                  <span style={{fontSize:10}}>{g.emoji}</span> {g.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Mood */}
+        <div className="card" style={{padding:24,marginBottom:16}}>
+          <div className="section-label">Mood</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+            {MOODS.map(m=>{
+              const active = moods.includes(m.id);
+              const c = colorVar(m.color);
+              return (
+                <div key={m.id} className={`pill ${active?'active':''}`}
+                  onClick={()=>toggle(moods,setMoods,m.id)}
+                  style={active?{background:c,color:'var(--bg)',boxShadow:`0 0 16px ${c}`}:{}}>
+                  {m.label}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Era */}
+        <div className="card" style={{padding:24,marginBottom:16}}>
+          <div className="section-label">Era</div>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+            {ERAS.map(e=>{
+              const active = eras.includes(e);
+              return (
+                <div key={e} className={`pill ${active?'active':''}`}
+                  onClick={()=>toggle(eras,setEras,e)}
+                  style={active?{background:'var(--sky)',color:'var(--bg)',boxShadow:'0 0 16px var(--sky)'}:{
+                    fontFamily:'Space Grotesk',fontWeight:600,
+                  }}>
+                  {e}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sliders */}
+        <div className="card" style={{padding:24,marginBottom:28}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+            <div>
+              <div className="section-label">Energy Level</div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+                <span style={{fontSize:13,color:'var(--text2)'}}>Chill</span>
+                <span style={{fontSize:13,color:'var(--lime)',fontFamily:'Space Grotesk',fontWeight:600}}>{energy}%</span>
+                <span style={{fontSize:13,color:'var(--text2)'}}>Hype</span>
+              </div>
+              <input type="range" min={0} max={100} value={energy} onChange={e=>setEnergy(+e.target.value)}
+                style={{background:`linear-gradient(90deg,var(--lime) ${energy}%,var(--border) ${energy}%)`}}/>
+            </div>
+            <div>
+              <div className="section-label">Min. Match Score</div>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
+                <span style={{fontSize:13,color:'var(--text2)'}}>Loose</span>
+                <span style={{fontSize:13,color:'var(--lime)',fontFamily:'Space Grotesk',fontWeight:600}}>{minMatch}%</span>
+                <span style={{fontSize:13,color:'var(--text2)'}}>Strict</span>
+              </div>
+              <input type="range" min={50} max={99} value={minMatch} onChange={e=>setMinMatch(+e.target.value)}
+                style={{background:`linear-gradient(90deg,var(--lime) ${(minMatch-50)/49*100}%,var(--border) ${(minMatch-50)/49*100}%)`}}/>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{
+          display:'flex',alignItems:'center',justifyContent:'space-between',
+          background:'var(--surface)',border:'1px solid var(--border)',
+          borderRadius:16,padding:'16px 20px',
+        }}>
+          <div>
+            <div style={{fontFamily:'Space Grotesk',fontWeight:600,fontSize:16}}>
+              <span style={{color:'var(--lime)'}}>{matchCount}</span> songs match
+            </div>
+            <div style={{color:'var(--text3)',fontSize:13,marginTop:2}}>
+              {hasFilter ? `${genres.length+moods.length+eras.length} filter${genres.length+moods.length+eras.length!==1?'s':''} active` : 'Select filters above'}
+            </div>
+          </div>
+          <button className="btn-primary" onClick={onNext}
+            style={{opacity:matchCount>0?1:0.4,pointerEvents:matchCount>0?'auto':'none'}}>
+            Preview Results
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   SCREEN 4 — RESULTS + CREATE
+══════════════════════════════════ */
+const ResultsScreen = ({playlist, onBack, onDone}) => {
+  const pl = PLAYLISTS.find(p=>p.id===playlist) || PLAYLISTS[0];
+  const [name, setName] = useState('Pop Essentials ✦');
+  const [creating, setCreating] = useState(false);
+  const [done, setDone] = useState(false);
+  const [playingId, setPlayingId] = useState(null);
+  const [confetti, setConfetti] = useState([]);
+
+  const filtered = SAMPLE_SONGS.filter(s=>s.genre==='pop'||s.genre==='hiphop').slice(0,12);
+
+  const handleCreate = () => {
+    setCreating(true);
+    setTimeout(()=>{
+      setCreating(false);
+      setDone(true);
+      // spawn confetti
+      const pieces = Array.from({length:30},(_,i)=>({
+        id:i,
+        x: 30+Math.random()*40,
+        color:['var(--lime)','var(--violet)','var(--coral)','var(--sky)'][i%4],
+        delay: Math.random()*0.5,
+        dur: 0.8+Math.random()*0.6,
+      }));
+      setConfetti(pieces);
+      setTimeout(()=>setConfetti([]),2000);
+    },2000);
+  };
+
+  if(done) return (
+    <div className="screen" style={{justifyContent:'center',padding:40,textAlign:'center',position:'relative'}}>
+      {confetti.map(c=>(
+        <div key={c.id} className="confetti-piece" style={{
+          left:`${c.x}%`,top:'20%',
+          background:c.color,
+          animationDuration:`${c.dur}s`,
+          animationDelay:`${c.delay}s`,
+          borderRadius:c.id%3===0?'50%':undefined,
+        }}/>
+      ))}
+      <div style={{maxWidth:420}}>
+        <div style={{
+          width:96,height:96,borderRadius:'50%',
+          background:'linear-gradient(135deg,var(--violet),var(--lime))',
+          display:'flex',alignItems:'center',justifyContent:'center',
+          margin:'0 auto 32px',fontSize:44,
+          boxShadow:'0 0 60px oklch(0.82 0.22 145 / 0.4)',
+          animation:'screenIn 0.5s cubic-bezier(0.22,1,0.36,1)',
+        }}>✦</div>
+        <h2 style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:36,letterSpacing:'-0.03em',marginBottom:12}}>
+          Playlist Created!
+        </h2>
+        <p style={{color:'var(--text2)',fontSize:16,lineHeight:1.6,marginBottom:8}}>
+          <span style={{color:'var(--lime)',fontWeight:600}}>"{name}"</span>
+        </p>
+        <p style={{color:'var(--text3)',fontSize:14,marginBottom:40}}>
+          {filtered.length} songs · now in your Spotify library
+        </p>
+        <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+          <button className="btn-primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+            Open in Spotify
+          </button>
+          <button className="btn-ghost" onClick={onBack}>Filter Another</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="screen" style={{padding:'48px 24px',alignItems:'center'}}>
+      <div style={{width:'100%',maxWidth:560}}>
+        <Steps current={4}/>
+        <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:28}}>
+          <button className="btn-icon" onClick={onBack}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+          </button>
+          <div>
+            <h2 style={{fontFamily:'Space Grotesk',fontWeight:700,fontSize:28,letterSpacing:'-0.03em'}}>
+              {filtered.length} songs found
+            </h2>
+            <div style={{color:'var(--text3)',fontSize:13,marginTop:2}}>Pop · Hip-Hop · ≥70% match</div>
+          </div>
+        </div>
+
+        {/* Name input */}
+        <div className="card" style={{padding:20,marginBottom:16}}>
+          <div className="section-label">New Playlist Name</div>
+          <input className="text-input" value={name} onChange={e=>setName(e.target.value)}
+            style={{marginTop:4}}/>
+        </div>
+
+        {/* Song list */}
+        <div className="card" style={{padding:'8px 12px',marginBottom:20,maxHeight:380,overflowY:'auto'}}>
+          {filtered.map((s,i)=>(
+            <div key={s.id} className="song-row" onClick={()=>setPlayingId(playingId===s.id?null:s.id)}>
+              <div style={{
+                width:32,height:32,borderRadius:8,flexShrink:0,
+                background:`linear-gradient(135deg, oklch(0.25 0.12 ${s.genre==='pop'?145:310}), oklch(0.45 0.18 ${s.genre==='pop'?145:310}))`,
+                display:'flex',alignItems:'center',justifyContent:'center',
+                fontSize:12,color:'white',fontFamily:'Space Grotesk',fontWeight:700,
+              }}>
+                {playingId===s.id
+                  ? <div style={{display:'flex',alignItems:'flex-end',gap:1.5,height:14}}>
+                      {[1,2,3].map(b=>(
+                        <div key={b} style={{width:2,height:`${40+Math.random()*60}%`,background:'var(--lime)',
+                          borderRadius:1,animation:`waveAnim ${0.4+b*0.1}s ease-in-out infinite alternate`,
+                          animationPlayState:'running'}}/>
+                      ))}
+                    </div>
+                  : <span style={{opacity:0.8}}>{i+1}</span>
+                }
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:'Space Grotesk',fontWeight:500,fontSize:14,
+                  whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',
+                  color:playingId===s.id?'var(--lime)':'var(--text)'}}>{s.title}</div>
+                <div style={{color:'var(--text3)',fontSize:12,marginTop:1}}>{s.artist}</div>
+              </div>
+              <div style={{
+                fontSize:11,fontFamily:'Space Grotesk',fontWeight:600,
+                padding:'3px 8px',borderRadius:100,
+                background:`oklch(0.82 0.22 145 / ${(s.match-70)/30*0.25+0.08})`,
+                color:'var(--lime)',
+              }}>{s.match}%</div>
+              <div style={{color:'var(--text3)',fontSize:12,fontFamily:'Space Grotesk',marginLeft:4}}>{s.dur}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Create */}
+        <button className="btn-primary" onClick={handleCreate}
+          style={{width:'100%',justifyContent:'center',gap:12,
+            opacity:name.trim()?1:0.4,pointerEvents:name.trim()?'auto':'none'}}>
+          {creating ? (
+            <>
+              <div className="spinner" style={{width:20,height:20,borderWidth:2}}/>
+              Creating your playlist…
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+              Create "{name}"
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════
+   TWEAKS PANEL
+══════════════════════════════════ */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "lime",
+  "roundness": 16,
+  "density": "comfortable"
+}/*EDITMODE-END*/;
+
+/* ══════════════════════════════════
+   ROOT APP
+══════════════════════════════════ */
+const App = () => {
+  const [screen, setScreen] = useState('hero');
+  const [playlist, setPlaylist] = useState(null);
+
+  const go = (s) => setScreen(s);
+
+  const screens = {
+    hero:    <HeroScreen    onNext={()=>go('pick')} />,
+    pick:    <PlaylistScreen onNext={id=>{setPlaylist(id);go('filter');}} onBack={()=>go('hero')} />,
+    filter:  <FilterScreen  playlist={playlist} onNext={()=>go('results')} onBack={()=>go('pick')} />,
+    results: <ResultsScreen playlist={playlist} onBack={()=>go('filter')} onDone={()=>go('hero')} />,
+  };
+
+  return (
+    <>
+      {screen !== 'hero' && <OrbField/>}
+      <div className="noise"/>
+      {screens[screen]}
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
+/* ── Tweaks protocol ── */
+window.addEventListener('message',e=>{
+  if(e.data?.type==='__activate_edit_mode') {
+    document.getElementById('tweaks-placeholder')?.setAttribute('style','display:block');
+  }
+  if(e.data?.type==='__deactivate_edit_mode') {
+    document.getElementById('tweaks-placeholder')?.setAttribute('style','display:none');
+  }
+});
+window.parent.postMessage({type:'__edit_mode_available'},'*');
+</script>
+</body>
+</html>
