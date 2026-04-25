@@ -15,7 +15,7 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 // Middleware
 app.use(express.json());
 app.use(cors({
-  origin: CLIENT_URL
+  origin: [CLIENT_URL, 'http://127.0.0.1:5173']
 }));
 
 // Health check route
@@ -25,7 +25,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/auth', authRoutes);
-app.use('/api/playlist', playlistRoutes);
+app.use('/playlists', playlistRoutes);
 app.use('/api/genres', genreRoutes);
 
 // Error handling middleware should be last

@@ -1,12 +1,47 @@
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, AuthContext } from './context/AuthContext';
 import { HeroScreen } from './screens/HeroScreen';
+import CallbackPage from './pages/CallbackPage';
+import Dashboard from './pages/Dashboard';
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated } = React.useContext(AuthContext);
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/login" />} />
+      <Route path="/login" element={
+        <>
+          <div className="noise" />
+          <HeroScreen onNext={() => {
+            window.location.href = 'http://localhost:5001/auth/login';
+          }} />
+        </>
+      } />
+      <Route path="/callback" element={<CallbackPage />} />
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } 
+      />
+    </Routes>
+  );
+};
 
 const App = () => {
   return (
-    <>
-      <div className="noise" />
-      <HeroScreen onNext={() => console.log('Connect Spotify Clicked')} />
-    </>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
   );
 };
 
