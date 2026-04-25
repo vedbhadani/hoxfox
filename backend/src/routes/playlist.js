@@ -1,8 +1,12 @@
-// Route definitions for Playlist fetching
 const express = require('express');
-const router = express.Router();
 const playlistController = require('../controllers/playlistController');
 
-router.get('/:playlistId/tracks', playlistController.getTracks);
+const router = express.Router();
+
+router.get('/', playlistController.getUserPlaylists);
+router.get('/:id', playlistController.getPlaylistTracks);
+router.post('/audio-features', playlistController.getAudioFeatures);
+router.post('/create', playlistController.createPlaylist);
+router.post('/add-tracks', playlistController.addTracksToPlaylist);
 
 module.exports = router;

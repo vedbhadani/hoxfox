@@ -1,85 +1,57 @@
-// Handles raw Spotify API calls using Axios
 const axios = require('axios');
-const qs = require('qs');
 
-const getSpotifyToken = async (code) => {
-  const authHeader = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
-  
-  const response = await axios.post('https://accounts.spotify.com/api/token', 
-    qs.stringify({
-      grant_type: 'authorization_code',
-      code,
-      redirect_uri: process.env.SPOTIFY_REDIRECT_URI
-    }),
-    {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${authHeader}`
-      }
-    }
-  );
+const BASE_URL = 'https://api.spotify.com/v1';
+
+const getHeaders = (token) => {
+  return {
+    Authorization: `Bearer ${token}`
+  };
+};
+
+const getUserPlaylists = async (token) => {
+  const response = await axios.get(`${BASE_URL}/me/playlists`, {
+    headers: getHeaders(token)
+  });
   return response.data;
 };
 
-const refreshSpotifyToken = async (refreshToken) => {
-  const authHeader = Buffer.from(`${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`).toString('base64');
-  
-  const response = await axios.post('https://accounts.spotify.com/api/token',
-    qs.stringify({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken
-    }),
-    {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${authHeader}`
-      }
-    }
-  );
+const getPlaylistTracks = async (playlistId, token) => {
+  const response = await axios.get(`${BASE_URL}/playlists/${playlistId}/tracks`, {
+    headers: getHeaders(token)
+  });
   return response.data;
 };
 
-const getPlaylistTracks = async (token, playlistId) => {
-  let tracks = [];
-  let nextUrl = `https://api.spotify.com/v1/playlists/${playlistId}/tracks?limit=100`;
-
-  while (nextUrl) {
-    const response = await axios.get(nextUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    tracks = tracks.concat(response.data.items);
-    nextUrl = response.data.next;
-  }
-
-  return tracks;
+const getAudioFeatures = async (trackIds, token) => {
+  const ids = trackIds.join(',');
+  const response = await axios.get(`${BASE_URL}/audio-features?ids=${ids}`, {
+    headers: getHeaders(token)
+  });
+  return response.data;
 };
 
-const getArtistGenres = async (token, artistIds) => {
-  let allArtists = [];
-  
-  // Spotify API allows max 50 artists per request
-  for (let i = 0; i < artistIds.length; i += 50) {
-    const batch = artistIds.slice(i, i + 50).join(',');
-    const response = await axios.get(`https://api.spotify.com/v1/artists?ids=${batch}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    allArtists = allArtists.concat(response.data.artists);
-  }
-  
-  // Return an array mapping artist ID to their genres
-  return allArtists.map(artist => ({
-    id: artist.id,
-    genres: artist.genres
-  }));
+const createPlaylist = async (userId, name, token) => {
+  const response = await axios.post(`${BASE_URL}/users/${userId}/playlists`, {
+    name: name
+  }, {
+    headers: getHeaders(token)
+  });
+  return response.data;
+};
+
+const addTracksToPlaylist = async (playlistId, uris, token) => {
+  const response = await axios.post(`${BASE_URL}/playlists/${playlistId}/tracks`, {
+    uris: uris
+  }, {
+    headers: getHeaders(token)
+  });
+  return response.data;
 };
 
 module.exports = {
-  getSpotifyToken,
-  refreshSpotifyToken,
+  getUserPlaylists,
   getPlaylistTracks,
-  getArtistGenres
+  getAudioFeatures,
+  createPlaylist,
+  addTracksToPlaylist
 };
