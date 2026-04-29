@@ -190,19 +190,27 @@ const RULES_TABLE = [
  */
 function matchRules(query) {
   const q = query.toLowerCase();
+  let bestRule = null;
+  let bestScore = 0;
+
   for (const rule of RULES_TABLE) {
-    if (rule.triggers.some(trigger => q.includes(trigger))) {
-      return {
-        keywords: expandKeywords(rule.keywords),
-        targetGenres: rule.genres,
-        artist: null, // Rules don't currently extract specific artists
-        language: rule.language,
-        label: rule.label,
-        source: 'rules'
-      };
+    const score = rule.triggers.filter(trigger => q.includes(trigger)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      bestRule = rule;
     }
   }
-  return null;
+
+  if (!bestRule) return null;
+
+  return {
+    keywords: expandKeywords(bestRule.keywords),
+    targetGenres: bestRule.genres,
+    artist: null,
+    language: bestRule.language,
+    label: bestRule.label,
+    source: 'rules'
+  };
 }
 
 /**

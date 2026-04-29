@@ -73,26 +73,42 @@ async def recommend(request: RecommendRequest):
         result = crew_instance.kickoff(inputs=inputs)
 
         # 5. Parse result
-        # Note: CrewAI result.raw is the string output. 
-        # We attempt to find JSON for the playlist and treat the rest as the report.
         raw_output = result.raw
-        
         playlist = []
         report = None
-        
-        # Simple extraction logic: look for the first '[' and last ']'
+
+        # The final task output is a markdown report — the playlist lives in earlier tasks.
+        # Search task outputs in reverse for the first one containing a clean_playlist or songs array.
         try:
-            start_idx = raw_output.find('[')
-            end_idx = raw_output.rfind(']') + 1
-            if start_idx != -1 and end_idx != -1:
-                json_str = raw_output[start_idx:end_idx]
-                playlist = json.loads(json_str)
-                # The rest is the report
-                report = raw_output.replace(json_str, "").strip()
-            else:
-                report = raw_output
-        except:
-            report = raw_output
+            tasks_output = result.tasks_output if hasattr(result, 'tasks_output') else []
+            
+            for task_output in reversed(tasks_output):
+                text = task_output.raw if hasattr(task_output, 'raw') else str(task_output)
+                # Look for JSON with clean_playlist or songs key
+                try:
+                    # Strip markdown code fences if present
+                    clean = text.replace('```json', '').replace('```', '').strip()
+                    parsed = json.loads(clean)
+                    if isinstance(parsed, dict):
+                        if 'clean_playlist' in parsed and isinstance(parsed['clean_playlist'], list):
+                            playlist = parsed['clean_playlist']
+                            break
+                        elif 'songs' in parsed and isinstance(parsed['songs'], list):
+                            playlist = parsed['songs']
+                            break
+                        elif 'playlist' in parsed and isinstance(parsed['playlist'], list):
+                            playlist = parsed['playlist']
+                            break
+                    elif isinstance(parsed, list) and len(parsed) > 0:
+                        playlist = parsed
+                        break
+                except:
+                    continue
+        except Exception as parse_err:
+            print(f"[main] result parsing warning: {parse_err}")
+
+        # The final task (generate_final_report) raw output is the report
+        report = raw_output if request.generate_report else None
 
         return RecommendResponse(
             playlist=playlist,

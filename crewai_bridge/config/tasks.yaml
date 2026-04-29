@@ -68,9 +68,12 @@ map_audio_features:
   - analyze_emotional_context
   - initialize_system_config
 retrieve_real_songs:
-  description: 'Retrieve real songs matching feature criteria. STRICT RULES: ONLY
-    return real, verifiable songs. Avoid duplicate artists. Ensure diversity across
-    artists. Use the exact JSON output format required.'
+  description: 'Retrieve real songs using the Spotify Recommendation Tool. You MUST
+    call the Spotify Recommendation Tool with these exact values: seed_track_ids:
+    "{seed_track_ids}", spotify_access_token: "{spotify_access_token}". Get the
+    target_energy, target_valence, and target_tempo values from the map_audio_features
+    task output. Use limit 20. After getting results from Spotify, ensure all returned
+    songs are real and diverse across artists. Never generate fake tracks.'
   expected_output: |-
     JSON format:
     {
