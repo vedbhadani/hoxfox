@@ -8,3 +8,5 @@ A web application that allows users to paste a Spotify playlist URL, extract gen
 - `backend/`: Backend service for handling Spotify API interactions and business logic.
 
 - Minor documentation update (April 29)
+
+- Minor documentation update (April 30)
