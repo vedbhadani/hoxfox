@@ -29,8 +29,17 @@ exports.getPlaylists = async (req, res) => {
   try {
     const token        = extractToken(req);
     const refreshToken = extractRefreshToken(req);
-    const playlists    = await spotifyService.getUserPlaylists(token, refreshToken);
-    res.json(playlists);
+    
+    // Fetch user and playlists in parallel
+    const [user, playlists] = await Promise.all([
+      spotifyService.getCurrentUser(token, refreshToken),
+      spotifyService.getUserPlaylists(token, refreshToken)
+    ]);
+
+    // Filter: Only playlists where the owner's ID matches the current user's ID
+    const filteredPlaylists = playlists.filter(p => p.owner.id === user.id);
+    
+    res.json(filteredPlaylists);
   } catch (err) {
     console.error('[getPlaylists]', err.response?.data || err.message);
     if (err.message === 'Missing token') return res.status(401).json({ error: 'Missing token' });

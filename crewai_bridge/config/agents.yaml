@@ -67,7 +67,8 @@ recommendation_engine:
     parameter adjustments (diversity_weight, penalty values) from previous runs to
     optimize scoring accuracy. Your scoring is data-driven, transparent, and continuously
     improved through system learning. You always include clear reasoning for each
-    score component and apply updated parameters when available.'
+    score component and apply updated parameters when available. Use deterministic
+    reasoning. Avoid variability. Ensure scoring consistency across runs.'
 music_curator:
   role: Music Curator
   goal: Create a coherent playlist with smooth emotional flow while avoiding monotony.

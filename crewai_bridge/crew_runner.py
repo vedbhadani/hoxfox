@@ -20,7 +20,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @agent
@@ -35,7 +35,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @agent
@@ -50,7 +50,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @agent
@@ -65,7 +65,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @agent
@@ -80,7 +80,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -95,7 +95,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -110,7 +110,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -125,7 +125,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -140,7 +140,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -155,7 +155,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -170,7 +170,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -185,7 +185,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -200,7 +200,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @agent
@@ -215,7 +215,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
 
     @agent
@@ -230,7 +230,7 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             max_iter=25,
             max_rpm=None,
             max_execution_time=None,
-            llm=LLM(model="openai/gpt-4o-mini"),
+            llm=LLM(model="google/gemini-2.0-flash"),
         )
 
     @task
@@ -353,5 +353,5 @@ class EnterpriseAiMusicRecommendationSystemCrew:
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
-            chat_llm=LLM(model="openai/gpt-4o-mini"),
+            chat_llm=LLM(model="groq/llama-3.3-70b-versatile"),
         )
